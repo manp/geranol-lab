@@ -20,7 +20,7 @@
 | [بک‌لاگ محصول](docs/scrum/product-backlog.md) | اپیک‌ها و داستان‌های کاربر با اولویت MoSCoW |
 | [تعریف «انجام‌شده»](docs/scrum/definition-of-done.md) | چک‌لیست DoD هر آیتم |
 | [اسپرینت ۰](docs/scrum/sprint-0.md) | کشف نیازمندی‌ها — هدف و کارهای جاری |
-| [پرسشنامهٔ مشتری](docs/requirements/client-questionnaire.md) | لینک و ساختار پرسشنامهٔ کشف نیازمندی |
+| [پرسشنامهٔ مشتری](docs/requirements/client-questionnaire.md) | [نسخهٔ آنلاین](https://pages.nsar.ir/p/DfmJMJUd0PmvWOu1cebddiaE/) و ساختار پرسشنامهٔ کشف نیازمندی |
 
 ## ساختار مخزن
 
