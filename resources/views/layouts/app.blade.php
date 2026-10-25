@@ -25,6 +25,11 @@
                         <li class="nav-item"><a href="{{ route('services') }}" @class(['nav-link', 'active' => request()->routeIs('services')])>خدمات و آزمایش‌ها</a></li>
                         <li class="nav-item"><a href="{{ route('about') }}" @class(['nav-link', 'active' => request()->routeIs('about')])>دربارهٔ ما</a></li>
                         <li class="nav-item"><a href="{{ route('contact') }}" @class(['nav-link', 'active' => request()->routeIs('contact')])>تماس با ما</a></li>
+@guest
+                        <li class="nav-item"><a href="{{ route('login') }}" @class(['nav-link', 'active' => request()->routeIs('login') || request()->routeIs('register')])>ورود / ثبت‌نام</a></li>
+@else
+                        <li class="nav-item"><a href="{{ route('dashboard.placeholder') }}" @class(['nav-link', 'active' => request()->routeIs('dashboard.placeholder')])>پنل شخصی</a></li>
+@endguest
                     </ul>
                 </div>
             </div>
