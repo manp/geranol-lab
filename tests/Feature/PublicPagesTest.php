@@ -2,11 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Models\ContactMessage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PublicPagesTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_home_page_loads(): void
     {
         $response = $this->get('/');
@@ -32,12 +35,54 @@ class PublicPagesTest extends TestCase
         $response->assertSee('دربارهٔ', false);
     }
 
-    public function test_contact_page_loads(): void
+    public function test_contact_page_shows_form(): void
     {
         $response = $this->get('/contact');
 
         $response->assertStatus(200);
-        $response->assertSee('تماس با ما', false);
+        $response->assertSee('فرم تماس', false);
+        $response->assertSee('name="phone"', false);
+    }
+
+    public function test_contact_form_saves_message(): void
+    {
+        $response = $this->post(route('contact.submit'), [
+            'name' => 'کشاورز نمونه',
+            'phone' => '09123456789',
+            'email' => 'farmer@example.com',
+            'message' => 'برای آنالیز خاک مزرعه تماس می‌گیرم.',
+        ]);
+
+        $response->assertRedirect(route('contact'));
+        $response->assertSessionHas('success');
+
+        $this->assertDatabaseHas('contact_messages', [
+            'name' => 'کشاورز نمونه',
+            'phone' => '09123456789',
+        ]);
+    }
+
+    public function test_contact_form_rejects_invalid_phone(): void
+    {
+        $response = $this->from(route('contact'))->post(route('contact.submit'), [
+            'name' => 'کشاورز نمونه',
+            'phone' => '12345',
+            'message' => 'پیام آزمایشی',
+        ]);
+
+        $response->assertSessionHasErrors('phone');
+        $this->assertDatabaseCount('contact_messages', 0);
+    }
+
+    public function test_contact_form_rejects_missing_message(): void
+    {
+        $response = $this->from(route('contact'))->post(route('contact.submit'), [
+            'name' => 'کشاورز نمونه',
+            'phone' => '09123456789',
+        ]);
+
+        $response->assertSessionHasErrors('message');
+        $this->assertDatabaseCount('contact_messages', 0);
     }
 
     public function test_pages_link_the_shared_stylesheet_with_font(): void

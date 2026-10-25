@@ -1,15 +1,18 @@
 <?php
 
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes — وب‌سایت عمومی
 |--------------------------------------------------------------------------
-| صفحات placeholder گر-۱۰۳؛ محتوای واقعی در GR-101 و GR-102 ساخته می‌شود.
+| GR-103: صفحات پایه؛ GR-101: خانه/درباره/تماس با فرم تماس.
+| GR-102 صفحهٔ خدمات را از مدل TestType می‌سازد.
 */
 
 Route::view('/', 'pages.home')->name('home');
-Route::view('/services', 'pages.services')->name('services');
 Route::view('/about', 'pages.about')->name('about');
-Route::view('/contact', 'pages.contact')->name('contact');
+Route::view('/services', 'pages.services')->name('services');
+Route::get('/contact', [ContactController::class, 'show'])->name('contact');
+Route::post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
