@@ -23,6 +23,40 @@
 | [اسپرینت ۱](docs/scrum/sprint-1.md) | برنامهٔ اسکلت Laravel و وب‌سایت عمومی |
 | [پرسشنامهٔ مشتری](docs/requirements/client-questionnaire.md) | [نسخهٔ آنلاین](https://pages.nsar.ir/p/DfmJMJUd0PmvWOu1cebddiaE/) و ساختار پرسشنامهٔ کشف نیازمندی |
 
+# نصب و اجرا — گرانول‌لب
+
+## پیش‌نیازها
+
+- PHP >= 8.3 با اکستنشن‌های استاندارد Laravel (pdo_sqlite برای توسعه، pdo_mysql برای تولید)
+- Composer 2
+
+## اجرای محلی
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+php artisan test        # تست‌ها (SQLite در حافظه)
+php artisan serve       # http://127.0.0.1:8000
+```
+
+## نکته‌های محیطی
+
+- توسعه: SQLite (`DB_CONNECTION=sqlite`) — تولید: MySQL (در `.env.production` پیکربندی می‌شود)
+- زبان اپ: `fa`، منطقهٔ زمانی: `Asia/Tehran`
+- فونت Vazirmatn به‌صورت asset محلی در `public/fonts/` — بدون CDN
+
+## اجرا با Docker (بدون نصب PHP روی میزبان)
+
+```bash
+# تست‌ها
+docker run --rm -v "$PWD:/app" -w /app php:8.4-cli sh -c "php artisan test"
+
+# سرور توسعه
+docker run --rm -p 8080:8080 -v "$PWD:/app" -w /app php:8.4-cli php artisan serve --host=0.0.0.0 --port=8080
+```
+
 ## ساختار مخزن
 
 ```
