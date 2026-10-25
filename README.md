@@ -20,6 +20,7 @@
 | [بک‌لاگ محصول](docs/scrum/product-backlog.md) | اپیک‌ها و داستان‌های کاربر با اولویت MoSCoW |
 | [تعریف «انجام‌شده»](docs/scrum/definition-of-done.md) | چک‌لیست DoD هر آیتم |
 | [اسپرینت ۰](docs/scrum/sprint-0.md) | کشف نیازمندی‌ها — هدف و کارهای جاری |
+| [اسپرینت ۱](docs/scrum/sprint-1.md) | برنامهٔ اسکلت Laravel و وب‌سایت عمومی |
 | [پرسشنامهٔ مشتری](docs/requirements/client-questionnaire.md) | [نسخهٔ آنلاین](https://pages.nsar.ir/p/DfmJMJUd0PmvWOu1cebddiaE/) و ساختار پرسشنامهٔ کشف نیازمندی |
 
 ## ساختار مخزن
@@ -38,6 +39,6 @@ app/ …            اسکلت Laravel (از Sprint 1)
 | اسپرینت | هدف |
 |---|---|
 | **Sprint 0** (جاری) | کشف نیازمندی‌ها: پرسشنامهٔ مشتری، منشور، تثبیت بک‌لاگ |
-| Sprint 1 | اسکلت Laravel + وب‌سایت عمومی |
+| Sprint 1 | اسکلت Laravel + وب‌سایت عمومی (GR-103 ← GR-101 ← GR-102؛ GR-701 stretch) |
 | Sprint 2 | حساب‌ها و نقش‌ها + پنل مدیریت (پذیرش نمونه، وضعیت) |
 | Sprint 3+ | گزارش نتایج، پنل مشتری، پرداخت آنلاین، اعلان‌ها |
