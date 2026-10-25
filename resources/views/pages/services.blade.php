@@ -5,14 +5,29 @@
 @section('content')
 <section class="py-3">
     <h1>خدمات و آزمایش‌ها</h1>
-    <p class="placeholder-note">[محل فهرست کامل خدمات، مدت تحویل و قیمت‌ها — داده از مدل TestType در GR-102 و پس از پاسخ پرسشنامهٔ مشتری]</p>
-    <ul class="list-group list-group-flush">
-        <li class="list-group-item">تشخیص آفات و بیماری‌های گیاهی</li>
-        <li class="list-group-item">آنالیز خاک</li>
-        <li class="list-group-item">آنالیز آب آبیاری</li>
-        <li class="list-group-item">آنالیز کود</li>
-        <li class="list-group-item">باقیماندهٔ سموم و آفت‌کش‌ها</li>
-        <li class="list-group-item">آزمون بذر</li>
-    </ul>
+    <p class="muted">فهرست آزمایش‌های آزمایشگاه گرانول — برای جزئیات، نمونهٔ لازم و مدت تحویل، هر خدمت را باز کنید.</p>
+
+    <div class="row g-3 mt-1">
+        @forelse ($services as $service)
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h2 class="card-title h5">{{ $service->name }}</h2>
+                        <p class="card-text">{{ $service->description_short }}</p>
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            @if ($service->price)
+                                <span class="fw-bold">{{ number_format($service->price) }} تومان</span>
+                            @else
+                                <span class="badge badge-ask">تماس بگیرید</span>
+                            @endif
+                            <a class="btn btn-outline-primary btn-sm" href="{{ route('services.show', $service->slug) }}">جزئیات</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @empty
+            <p class="placeholder-note">فهرست خدمات به‌زودی تکمیل می‌شود.</p>
+        @endforelse
+    </div>
 </section>
 @endsection
