@@ -1,0 +1,14 @@
+# MILESTONES
+# Sprint 0 .. Sprint N — هر اسپرینت یک milestone با ددلاین
+# LABELS
+P:must;dc2626
+P:should;f59e0b
+P:could;10b981
+epic;1d76db
+user-story;0e8a16
+bug;d73a4a
+docs;0075ca
+question;d4c5f9
+frontend;70b7fd
+backend;5319e7
+payment;fbca04
