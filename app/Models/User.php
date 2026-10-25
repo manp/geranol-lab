@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['name', 'email', 'mobile', 'password'])]
+#[Fillable(['name', 'email', 'mobile', 'role', 'is_active', 'password'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -27,6 +27,20 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
+
+    /**
+     * GR-202: برچسب فارسی نقش برای نمایش.
+     */
+    public function role_label(): string
+    {
+        return match ($this->role) {
+            'admin' => 'مدیر',
+            'employee' => 'کارمند',
+            default => 'مشتری',
+        };
+    }
 }
+

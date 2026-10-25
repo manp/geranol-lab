@@ -29,6 +29,9 @@
                         <li class="nav-item"><a href="{{ route('login') }}" @class(['nav-link', 'active' => request()->routeIs('login') || request()->routeIs('register')])>ورود / ثبت‌نام</a></li>
 @else
                         <li class="nav-item"><a href="{{ route('dashboard.placeholder') }}" @class(['nav-link', 'active' => request()->routeIs('dashboard.placeholder')])>پنل شخصی</a></li>
+@if (in_array(auth()->user()->role, ['admin', 'employee']))
+                        <li class="nav-item"><a href="{{ route('admin.users.index') }}" class="nav-link">پنل مدیریت</a></li>
+@endif
 @endguest
                     </ul>
                 </div>

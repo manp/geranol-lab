@@ -68,6 +68,12 @@ class AuthController extends Controller
                 ->onlyInput('mobile');
         }
 
+        if (! $user->is_active) {
+            return back()
+                ->withErrors(['mobile' => 'حساب شما غیرفعال شده است؛ با مدیر آزمایشگاه تماس بگیرید.'])
+                ->onlyInput('mobile');
+        }
+
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 

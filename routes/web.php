@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ServicesController;
@@ -37,4 +38,18 @@ Route::middleware('guest')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
     Route::get('/dashboard', [AuthController::class, 'dashboardPlaceholder'])->name('dashboard.placeholder');
+});
+
+/*
+|--------------------------------------------------------------------------
+| پنل مدیریت — GR-202 (فقط admin و employee؛ مشتری ۴۰۳ می‌گیرد)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'role:admin,employee'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/users', [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
 });
