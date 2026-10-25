@@ -44,9 +44,9 @@ class PublicPagesTest extends TestCase
     {
         $response = $this->get('/');
 
-        $response->assertSee('css/app.css', false);
+        $response->assertSee('css/granollab.css', false);
 
-        $css = file_get_contents(public_path('css/app.css'));
+        $css = file_get_contents(public_path('css/granollab.css'));
         $this->assertStringContainsString('Vazirmatn', $css);
     }
 }
