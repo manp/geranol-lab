@@ -7,7 +7,7 @@
 
 | ترتیب | شناسه | Issue | عنوان | برآورد | وضعیت |
 |---|---|---|---|---|---|
-| ۱ | GR-103 | [#8](https://github.com/manp/geranol-lab/issues/8) | اسکلت Laravel و پایهٔ UI فارسی RTL | L | ⬜ |
+| ۱ | GR-103 | [#8](https://github.com/manp/geranol-lab/issues/8) | اسکلت Laravel و پایهٔ UI فارسی RTL | L | ✅ (PR #9 + #10) |
 | ۲ | GR-101 | [#2](https://github.com/manp/geranol-lab/issues/2) | صفحهٔ معرفی آزمایشگاه (خانه/درباره/تماس) | M | ⬜ |
 | ۳ | GR-102 | [#3](https://github.com/manp/geranol-lab/issues/3) | فهرست خدمات/آزمایش‌ها با شرح هرکدام | M | ⬜ |
 
