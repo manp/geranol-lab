@@ -35,9 +35,9 @@
 - پنل ادمین (خروجی/بازبینی) با basicAuth در Traefik محافظت می‌شود.
 
 ## بهره‌برداری (پس از دیپلوی 2026-10-28)
-- آدرس مشتری: **https://geranol-chat.nsar.ir** — لینک را کاربر خودش به مشتری می‌دهد.
+- آدرس مشتری: **https://geranol-chat.nsar.ir** — صفحه با **رمز دسترسی محافظت می‌شود** (گیت کلاینت؛ هش در /opt/geranol-chat/.chat-pass-hash، مقدار خام در /opt/geranol-chat/.chat-pass) — لینک+رمز را کاربر خودش به مشتری می‌دهد.
 - پنل بازبینی: `https://geranol-chat.nsar.ir/admin/` (basicAuth؛ رمز روی Alpha: `/opt/geranol-chat/.admin-pass`) — فهرست گفتگوها + خروجی `export.md` / `export.json`.
 - خروجی مارک‌داون پس از هر تغییر قالب در `/workspace/granule-lab/client-conversations.md` هم گذاشته می‌شود (دستور Chief).
 - کانتینر: `granule-chat` (node:22-alpine، network host، mount `/opt/geranol-chat`)؛ ترافیک: Traefik `geranol-chat-nsar-ir.yml` (TLS letsencrypt + basicAuth فقط مسیر /admin).
-- زنجیرهٔ مدل (بدون کلید روی سرور): Kilo north-mini → Kilo nemotron-3-ultra → OR glm (اگر کلید env باشد). هر لایه بی‌کلید همیشه فعال.
+- زنجیرهٔ مدل (از 2026-10-28، فرمان کاربر): ① Hive glm-5.3-flash ② Hive deepseek-v4.1-flash (کلید از env کانتینر HIVE_API_KEY — از .env اوپن‌بات همان سرور در deploy تزریق می‌شود؛ در هیچ فایلی کپی نشده) ③ Kilo بی‌کلید ×۲ ④ OR glm (اگر کلید env باشد). لایهٔ برنده در conversations.jsonl (servedBy) ثبت می‌شود.
 - دیتای گفتگو: `/opt/geranol-chat/data/` (dialogues/*.json + conversations.jsonl + client-notes.jsonl) — بکاپ قبل از هر تغییر.

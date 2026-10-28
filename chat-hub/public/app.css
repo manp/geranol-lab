@@ -73,3 +73,18 @@ body {
 .btn { margin-top: 8px; border: none; background: var(--accent); color: #fff; border-radius: 12px; padding: 8px 18px; cursor: pointer; font: inherit; }
 .ok { color: var(--accent); font-size: 13px; margin-inline-start: 8px; }
 .foot { text-align: center; font-size: 11px; color: var(--ink-2); padding: 12px 0 4px; }
+
+/* ---------- گیت پسورد ---------- */
+.gate { min-height: 60dvh; display: grid; place-items: center; }
+.gate .card {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 24px; max-width: 360px; width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,.06);
+}
+.gate h1 { font-size: 17px; margin: 0 0 6px; }
+.gate p { font-size: 13px; color: var(--ink-2); margin: 0 0 14px; }
+.gate input {
+  width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px;
+  font: inherit; background: transparent; color: var(--ink); margin-bottom: 10px;
+}
+.gate .btn { width: 100%; }
+.gate-err { color: #c0392b; font-size: 12px; margin: 8px 0 0; }

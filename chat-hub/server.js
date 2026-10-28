@@ -24,6 +24,8 @@ const UPSTREAM_TIMEOUT = 30000;
 // زنجیرهٔ مدل طبق رجیستری (zero-cost): Hive → OR → Kilo؛ هر لایه فقط اگر کلیدش باشد،
 // Kilo بی‌کلید همیشه هست. کلیدها فقط سمت سرور، از env، هرگز لاگ نمی‌شوند.
 const CHAIN = [
+  { base: 'https://api-cdn.thehive.ai/api/v3', id: 'zai-org/glm-5.3-flash', key: (process.env.HIVE_API_KEY || '').trim() },
+  { base: 'https://api-cdn.thehive.ai/api/v3', id: 'deepseek-ai/deepseek-v4.1-flash-1017', key: (process.env.HIVE_API_KEY || '').trim() },
   { base: 'https://ai-gateway.kilo.ai/api/v1', id: 'cohere/north-mini-code:free', key: '' },
   { base: 'https://ai-gateway.kilo.ai/api/v1', id: 'nvidia/nemotron-3-ultra-550b-a55b:free', key: '' },
   { base: 'https://openrouter.ai/api/v1', id: 'z-ai/glm-5.3-flash', key: (process.env.OPENROUTER_API_KEY || '').trim() },
@@ -34,6 +36,24 @@ const MODEL_ID = chain[0].id;
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
 const PROMPT = fs.readFileSync(path.join(ROOT, 'prompt.md'), 'utf8');
+
+// ---------- گیت پسورد کلاینت ----------
+// پسورد هش‌شده (sha256 hex) از env یا فایل .chat-pass-hash کنار اپ؛
+// اپ خودش هرگز مقدار خام را نمی‌بیند.
+let CHAT_PASS_HASH = (process.env.CHAT_PASS_HASH || '').trim();
+if (!CHAT_PASS_HASH) {
+  const hp = path.join(ROOT, '.chat-pass-hash');
+  if (fs.existsSync(hp)) CHAT_PASS_HASH = fs.readFileSync(hp, 'utf8').trim();
+}
+const chatCookies = (req) => Object.fromEntries((req.headers.cookie || '').split(';').map((v) => {
+  const i = v.indexOf('='); return i < 0 ? ['', ''] : [v.slice(0, i).trim(), decodeURIComponent(v.slice(i + 1).trim())];
+}).filter(([k]) => k));
+const sha256 = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex');
+const chatUnlocked = (req) => {
+  if (!CHAT_PASS_HASH) return true; // گیت غیرفعال اگر هشی تنظیم نشده باشد
+  const c = chatCookies(req);
+  return c.gchatpass === sha256('unlocked:' + CHAT_PASS_HASH);
+};
 
 // ---------- کوچک: ابزارها ----------
 const json = (res, code, obj) => {
@@ -91,7 +111,7 @@ async function callModel(turns) {
       const d = await r.json();
       const text = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
       if (!text) throw new Error('empty completion');
-      return text;
+      return { text, layer: layer.id };
     } catch (e) {
       lastErr = e;
       logLine('errors.jsonl', { ts: new Date().toISOString(), layer: layer.id, err: String(e && e.message || e) });
@@ -112,6 +132,25 @@ const server = http.createServer(async (req, res) => {
   const pathName = url.pathname;
 
   try {
+    // --- گیت پسورد کلاینت: ورود + بررسی
+    if (pathName === '/api/unlock' && req.method === 'POST') {
+      if (!CHAT_PASS_HASH) return json(res, 200, { ok: true, gate: false });
+      const body = await readBody(req);
+      let pass = '';
+      try { pass = String(JSON.parse(body).password || ''); } catch { /* ignore */ }
+      if (!pass || sha256(pass) !== CHAT_PASS_HASH) {
+        logLine('auth-failures.jsonl', { ts: new Date().toISOString(), ip: req.socket.remoteAddress });
+        return json(res, 401, { ok: false, error: 'رمز درست نیست.' });
+      }
+      res.setHeader('Set-Cookie', `gchatpass=${sha256('unlocked:' + CHAT_PASS_HASH)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
+      return json(res, 200, { ok: true, gate: true });
+    }
+
+    // --- مسیرهای محافظت‌شده: چت بدون رمز باز نمی‌شود
+    if (['/api/message', '/api/feedback', '/app.js', '/app.css'].includes(pathName) && !chatUnlocked(req)) {
+      return json(res, 401, { gate: true, error: 'این گفتگو با رمز محافظت می‌شود.' });
+    }
+
     // --- health
     if (pathName === '/health') return json(res, 200, { ok: true, model: MODEL_ID });
 
@@ -126,9 +165,7 @@ const server = http.createServer(async (req, res) => {
     // --- شروع/ادامهٔ گفتگو
     if (pathName === '/api/message' && req.method === 'POST') {
       // session id از کوکی؛ تازه = گفتگوی تازه
-      const cookies = Object.fromEntries((req.headers.cookie || '').split(';').map((v) => {
-        const i = v.indexOf('='); return i < 0 ? ['', ''] : [v.slice(0, i).trim(), decodeURIComponent(v.slice(i + 1).trim())];
-      }).filter(([k]) => k));
+      const cookies = chatCookies(req);
       let sid = cookies.gchat;
       let fresh = false;
       if (!sid || !/^[a-f0-9]{16}$/.test(sid)) {
@@ -153,8 +190,8 @@ const server = http.createServer(async (req, res) => {
       s.turns.push({ role: 'user', content: msg });
       s.msgsThisHour.push(now);
 
-      let reply;
-      try { reply = await callModel(s.turns); }
+      let reply, servedBy;
+      try { ({ text: reply, layer: servedBy } = await callModel(s.turns)); }
       catch (e) {
         logLine('errors.jsonl', { ts: new Date().toISOString(), sid, err: String(e && e.message || e) });
         return json(res, 502, { error: 'الان نمی‌توانم پاسخ دهم؛ چند لحظه بعد دوباره بنویسید.' });
@@ -162,7 +199,7 @@ const server = http.createServer(async (req, res) => {
 
       s.turns.push({ role: 'assistant', content: reply });
       saveSession(sid, s);
-      logLine('conversations.jsonl', { ts: new Date().toISOString(), sid, user: msg, assistant: reply });
+      logLine('conversations.jsonl', { ts: new Date().toISOString(), sid, servedBy, user: msg, assistant: reply });
 
       res.setHeader('Set-Cookie', `gchat=${sid}; Path=/; HttpOnly; SameSite=Lax; Max-Age=2592000`);
       return json(res, 200, { reply, sessionId: sid });
@@ -170,9 +207,7 @@ const server = http.createServer(async (req, res) => {
 
     // --- بازخورد مشتری روی جمع‌بندی
     if (pathName === '/api/feedback' && req.method === 'POST') {
-      const cookies = Object.fromEntries((req.headers.cookie || '').split(';').map((v) => {
-        const i = v.indexOf('='); return i < 0 ? ['', ''] : [v.slice(0, i).trim(), decodeURIComponent(v.slice(i + 1).trim())];
-      }).filter(([k]) => k));
+      const cookies = chatCookies(req);
       const sid = cookies.gchat || 'anon';
       const body = await readBody(req);
       let note = '';
