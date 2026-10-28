@@ -142,3 +142,12 @@ button, input, textarea { font-family: inherit; }
 }
 .gate .btn { width: 100%; }
 .gate-err { color: #c0392b; font-size: 12px; margin: 8px 0 0; }
+
+/* ---------- قرص «پیام جدید ↓» (فقط وقتی کاربر بالاتر از پایین است) ---------- */
+#jump-pill {
+  position: fixed; bottom: 92px; inset-inline-start: 50%; transform: translateX(50%);
+  z-index: 30; border: 1px solid rgba(30,125,79,.4); cursor: pointer;
+  background: var(--card); color: var(--accent-2); font: inherit; font-size: 12px;
+  padding: 7px 16px; border-radius: 999px; box-shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+@media (prefers-color-scheme: dark) { #jump-pill { color: #7fd0a8; } }

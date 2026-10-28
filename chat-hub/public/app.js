@@ -26,8 +26,45 @@ function addMsg(text, who) {
   b.textContent = text;
   wrap.appendChild(b);
   chat.appendChild(wrap);
-  chat.scrollTop = chat.scrollHeight;
-  return b;
+  return wrap;
+}
+
+// ---------- اسکرول هوشمند ----------
+// ریشهٔ باگ «اسکرول بعد از ارسال پاسخ»: .chat هرگز overflow نمی‌شود (بالا کش می‌آید)
+// پس chat.scrollTop=scrollHeight روی 0 می‌ماند (no-op) و پاسخِ دیررس پایین صفحه رها می‌شود.
+// اسکرولر واقعی صفحه است (scrollingElement)؛ رفتار استاندارد:
+// - ارسال: دیدن پیام خود کاربر
+// - پاسخ: اسکرول نرم به انتهای پاسخ فقط اگر کاربر نزدیک پایین بود/همین حالا فرستاده؛
+//   وگرنه قرص «پیام جدید ↓»
+const scroller = () => document.scrollingElement || document.documentElement;
+const NEAR = 150;
+let justSent = false; // تا پایان رندر پاسخ: حق اسکرول به پایین برای ارسال تازه
+function nearBottom() {
+  return scroller().scrollHeight - scroller().scrollTop - window.innerHeight <= NEAR;
+}
+function scrollToBottom(smooth) {
+  requestAnimationFrame(() => {
+    scroller().scrollTo({ top: scroller().scrollHeight, behavior: !smooth || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth' });
+  });
+}
+function updateJumpPill() {
+  const p = document.getElementById('jump-pill');
+  if (!p) return;
+  p.hidden = nearBottom();
+}
+function initScrollUX() {
+  if (document.getElementById('jump-pill')) return;
+  const p = document.createElement('button');
+  p.id = 'jump-pill';
+  p.type = 'button';
+  p.textContent = 'پیام جدید ↓';
+  p.addEventListener('click', () => { scrollToBottom(true); updateJumpPill(); });
+  document.body.appendChild(p);
+  window.addEventListener('scroll', () => {
+    if (!nearBottom()) justSent = false; // اسکرول رو به بالا = کاربر تاریخچه می‌خواند؛ حق اسکرول خودکار باطل
+    updateJumpPill();
+  }, { passive: true });
+  updateJumpPill();
 }
 
 function typing(on) {
@@ -37,7 +74,7 @@ function typing(on) {
     wrap.id = 'typing';
     wrap.innerHTML = '<div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
     chat.appendChild(wrap);
-    chat.scrollTop = chat.scrollHeight;
+    if (justSent) scrollToBottom(true);
   } else {
     const t = document.getElementById('typing');
     if (t) t.remove();
@@ -67,6 +104,8 @@ async function sendMsg() {
   const text = input.value.trim();
   if (!text) return;
   addMsg(text, 'me');
+  justSent = true;          // پاسخِ همین ارسال حق دارد نمای کاربر را به پایین ببرد
+  scrollToBottom(true);     // پیام خود کاربر دیده شود
   input.value = '';
   input.style.height = 'auto';
   send.disabled = true;
@@ -89,6 +128,8 @@ async function sendMsg() {
     typing(false);
     addMsg('ارتباط برقرار نشد؛ اینترنت خود را چک کنید و دوباره بفرستید.', 'bot');
   }
+  justSent = false;
+  updateJumpPill();
   send.disabled = false;
   input.focus();
 }
@@ -209,7 +250,8 @@ function renderRichReply(text) {
     if (part.t === 'text') { addMsg(part.v, 'bot'); continue; }
     const parsed = parseOuiBlock(part.v);
     chat.appendChild(renderOuiPanel(parsed));
-    chat.scrollTop = chat.scrollHeight;
+    if (nearBottom() || justSent) scrollToBottom(true);
+    updateJumpPill();
   }
 }
 
@@ -253,6 +295,7 @@ function showChat() {
   chatShell.style.visibility = '';
   chat.style.display = '';
   document.querySelector('.composer').hidden = false;
+  initScrollUX();
 }
 
 (async function initGate() {
