@@ -238,25 +238,74 @@ const server = http.createServer(async (req, res) => {
       const dialoguesDir = path.join(DATA_DIR, 'dialogues');
       let files = [];
       try { files = fs.readdirSync(dialoguesDir).filter((f) => f.endsWith('.json')); } catch { /* none */ }
+      const tehran = (iso) => {
+        if (!iso) return '';
+        try { return new Date(new Date(iso).getTime() + 3.5 * 3600e3).toISOString().slice(0, 16).replace('T', ' '); }
+        catch { return String(iso).slice(0, 16); }
+      };
       const rows = files.map((f) => {
         try {
           const d = JSON.parse(fs.readFileSync(path.join(dialoguesDir, f), 'utf8'));
           const userTurns = (d.turns || []).filter((t) => t.role === 'user').length;
           const lastUser = [...(d.turns || [])].reverse().find((t) => t.role === 'user');
-          return { id: f.replace('.json', ''), created: d.created, userTurns,
+          return { id: f.replace('.json', ''), created: d.created, updated: d.updated, userTurns,
                    last: lastUser ? String(lastUser.content).slice(0, 80) : '' };
         } catch { return null; }
       }).filter(Boolean);
+      // آمار داشبورد (پیام‌های امروز به وقت تهران؛ هر خط conversations.jsonl = یک تبادل کاربر+دستیار)
+      let msgsToday = 0;
+      try {
+        const today = new Date(Date.now() + 3.5 * 3600e3).toISOString().slice(0, 10);
+        for (const l of fs.readFileSync(path.join(DATA_DIR, 'conversations.jsonl'), 'utf8').split('\n')) {
+          if (!l.trim()) continue;
+          try { const e = JSON.parse(l); if (String(e.ts || '').slice(0, 10) === today) msgsToday += 2; } catch { /* skip */ }
+        }
+      } catch { /* no log yet */ }
+      const lastAct = rows.reduce((m, r) => ((r.updated && r.updated > m) ? r.updated : m), '');
+      const qnStats = qnStatsNow();
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
       const html = '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8">' +
         '<link rel="stylesheet" href="/fonts.css">' +
-        '<title>بازبینی گفتگوها — گرانول</title></head><body style="font-family:Vazirmatn,sans-serif;direction:rtl">' +
-        '<h1>گفتگوهای مشتری — گرانول (' + rows.length + ')</h1>' +
-        '<p><a href="/admin/export.md">دانلود خروجی مارک‌داون</a> · <a href="/admin/export.json">JSON خام</a></p>' +
-        '<table border="1" cellpadding="6" style="border-collapse:collapse">' +
-        '<tr><th>شناسه</th><th>آغاز</th><th>پیام‌های مشتری</th><th>آخرین پیام مشتری</th></tr>' +
-        rows.map((r) => '<tr><td>' + r.id.slice(0, 8) + '</td><td>' + String(r.created).slice(0, 16) +
-          '</td><td>' + r.userTurns + '</td><td>' + r.last.replace(/</g, '&lt;') + '</td></tr>').join('') +
-        '</table></body></html>';
+        '<title>داشبورد گرانول</title>' +
+        '<style>' +
+        'body{font-family:Vazirmatn,sans-serif;direction:rtl;background:#f4f6f8;margin:0;padding:24px;color:#1c2733}' +
+        '.wrap{max-width:960px;margin:0 auto}' +
+        'h1{font-size:22px;margin:0 0 4px}' +
+        '.sub{color:#5b6b7b;font-size:13px;margin:0 0 16px}' +
+        '.hint{background:#fff8e6;border:1px solid #f0dfa8;color:#7a5b00;border-radius:10px;padding:10px 14px;font-size:13px;margin:0 0 16px}' +
+        '.stats{display:flex;gap:12px;flex-wrap:wrap;margin:0 0 16px}' +
+        '.stat{flex:1;min-width:180px;background:#fff;border:1px solid #e3e9ef;border-radius:12px;padding:14px 16px}' +
+        '.stat .k{color:#5b6b7b;font-size:12px;margin-bottom:6px}' +
+        '.stat .v{font-size:24px;font-weight:700}' +
+        '.btns{margin:0 0 16px}' +
+        '.btns a{display:inline-block;background:#1f6f43;color:#fff;text-decoration:none;border-radius:10px;padding:9px 16px;font-size:13px;margin-inline-end:8px}' +
+        'table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e3e9ef;border-radius:12px;overflow:hidden;font-size:13px}' +
+        'th,td{padding:8px 10px;border-bottom:1px solid #eef2f6;text-align:right}' +
+        'th{background:#f0f4f8;font-size:12px;color:#41556b}' +
+        '</style></head><body><div class="wrap">' +
+        '<h1>داشبورد گرانول</h1>' +
+        '<p class="sub">بازبینی گفتگوهای مشتری · geranol-chat.nsar.ir</p>' +
+        '<p class="hint">🔑 ورود این صفحه با <b>رمز ادمین</b> است — رمز گفتگوی مشتری این‌جا کار نمی‌کند.</p>' +
+        '<div class="stats">' +
+        '<div class="stat"><div class="k">تعداد گفتگوها</div><div class="v">' + rows.length + '</div></div>' +
+        '<div class="stat"><div class="k">پیام‌های امروز</div><div class="v">' + msgsToday + '</div></div>' +
+        '<div class="stat"><div class="k">آخرین فعالیت</div><div class="v" style="font-size:15px">' + (lastAct ? esc(tehran(lastAct)) : '—') + '</div></div>' +
+        '</div>' +
+        '<div class="btns"><a href="/admin/export.md">دانلود خروجی مارک‌داون</a><a href="/admin/export.json" style="background:#41556b">JSON خام</a></div>' +
+        '<h2 style="font-size:16px;margin:0 0 8px">پرسشنامهٔ مشتری</h2>' +
+        (qnStats
+          ? '<div class="stats">' +
+            '<div class="stat"><div class="k">پاسخ‌های ثبت‌شده</div><div class="v">' + qnStats.count + '</div></div>' +
+            '<div class="stat"><div class="k">سؤال‌های پاسخ‌داده‌شده (آخرین)</div><div class="v" style="font-size:17px">' + qnStats.answered + ' از ' + qnStats.total + '</div></div>' +
+            '<div class="stat"><div class="k">آخرین پاسخ</div><div class="v" style="font-size:15px">' + esc(qnStats.last) + '</div></div>' +
+            '</div>' +
+            '<div class="btns"><a href="https://pages.nsar.ir/r/AGtoBwIt8XcLOLSrO_etTZkYlzwg4BFx/">مشاهدهٔ نتایج (فقط‌خواندنی)</a><a href="https://pages.nsar.ir/r/AGtoBwIt8XcLOLSrO_etTZkYlzwg4BFx/responses.xlsx" style="background:#41556b">اکسل پاسخ‌ها</a></div>'
+          : '<p class="sub">آمار پرسشنامه در دسترس نیست.</p>') +
+        '<table>' +
+        '<tr><th>شناسه</th><th>آغاز</th><th>پیام‌های مشتری</th><th>آخرین فعالیت</th><th>آخرین پیام مشتری</th></tr>' +
+        rows.map((r) => '<tr><td>' + esc(r.id.slice(0, 8)) + '</td><td>' + esc(String(r.created).slice(0, 16)) +
+          '</td><td>' + r.userTurns + '</td><td>' + esc(tehran(r.updated)) + '</td><td>' + esc(r.last) + '</td></tr>').join('') +
+        '</table></div></body></html>';
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       return res.end(html);
     }
@@ -331,5 +380,55 @@ function buildMarkdown() {
   } catch { /* no notes */ }
   return parts.join('\n');
 }
+
+// ---------- آمار زندهٔ پرسشنامهٔ مشتری (فقط‌خواندنی از خروجی رسمی نتایج؛ هر ۵ دقیقه) ----------
+const QN_RESULTS_CSV = 'https://pages.nsar.ir/r/AGtoBwIt8XcLOLSrO_etTZkYlzwg4BFx/responses.csv';
+let qnCache = null;
+
+function parseCsvRows(text) {
+  const rows = [];
+  let row = [], cell = '', inQ = false;
+  const t = String(text).replace(/^\uFEFF/, '');
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if (inQ) {
+      if (ch === '"') { if (t[i + 1] === '"') { cell += '"'; i++; } else inQ = false; }
+      else cell += ch;
+    } else if (ch === '"') inQ = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  if (cell !== '' || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.some((c) => String(c).trim() !== ''));
+}
+
+async function refreshQnStats() {
+  try {
+    const r = await fetch(QN_RESULTS_CSV, { signal: AbortSignal.timeout(8000) });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const rows = parseCsvRows(await r.text());
+    if (rows.length < 2) throw new Error('empty export');
+    const header = rows[0];
+    const timeCol = header.findIndex((h) => String(h).includes('زمان ثبت'));
+    const qIdx = header.map((h, i) => (i === 0 || i === timeCol ? -1 : i)).filter((i) => i >= 0);
+    const dataRows = rows.slice(1);
+    const lastRow = dataRows[dataRows.length - 1];
+    const answered = qIdx.reduce((n, i) => n + (String(lastRow[i] || '').trim() ? 1 : 0), 0);
+    qnCache = {
+      count: dataRows.length,
+      answered,
+      total: qIdx.length,
+      last: lastRow[timeCol >= 0 ? timeCol : 1] || '',
+      at: new Date().toISOString(),
+    };
+  } catch (e) {
+    if (!qnCache) qnCache = null;
+    logLine('errors.jsonl', { ts: new Date().toISOString(), err: 'qnStats: ' + String(e && e.message || e) });
+  }
+}
+refreshQnStats();
+setInterval(refreshQnStats, 5 * 60e3).unref();
+function qnStatsNow() { return qnCache; }
 
 server.listen(PORT, process.env.HOST || '127.0.0.1', () => console.log('geranol-chat listening on ' + (process.env.HOST || '127.0.0.1') + ':' + PORT));
