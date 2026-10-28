@@ -302,8 +302,14 @@ function buildMarkdown() {
       parts.push('- آغاز: ' + (d.created || '?') + ' — آخرین: ' + (d.updated || '?') + ' — نوبت‌ها: ' + (d.turns || []).length);
       parts.push('');
       for (const t of d.turns || []) {
-        const who = t.role === 'user' ? '**مشتری:**' : '**دستیار:**';
-        parts.push('- ' + who + ' ' + mask(t.content).replace(/\n/g, ' / '));
+        let who, txt = String(t.content || '');
+        if (t.role === 'user') who = '**مشتری:**';
+        else {
+          who = '**دستیار:**';
+          const i = txt.indexOf('```oui');
+          if (i >= 0) txt = txt.slice(0, i).trim(); // پنل UI است — فقط نثر به export
+        }
+        parts.push('- ' + who + ' ' + mask(txt).replace(/\n/g, ' / '));
       }
       parts.push('');
     } catch { /* skip broken */ }

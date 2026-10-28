@@ -82,7 +82,7 @@ async function sendMsg() {
     if (!r.ok) {
       addMsg(d.error || 'خطایی پیش آمد؛ دوباره تلاش کنید.', 'bot');
     } else {
-      addMsg(d.reply, 'bot');
+      renderRichReply(d.reply);
       guessPhase(d.reply);
     }
   } catch {
@@ -91,6 +91,115 @@ async function sendMsg() {
   }
   send.disabled = false;
   input.focus();
+}
+
+// ---------- رندر پنل OpenUI (```oui) ----------
+// فرمت بلوک: خط‌محور — card/note/row/list/tags/callout/followup.
+// بخشنده (forgiving): هر خط مستقل پارس می‌شود؛ خرابی → کارت متنی استایل‌دار.
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text != null) e.textContent = text;
+  return e;
+}
+
+function splitOuiBlocks(text) {
+  const parts = [];
+  const re = /```oui[^\n]*\n([\s\S]*?)(?:```|$)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    const before = text.slice(last, m.index).trim();
+    if (before) parts.push({ t: 'text', v: before });
+    parts.push({ t: 'block', v: m[1] });
+    last = re.lastIndex;
+  }
+  const tail = text.slice(last).trim();
+  if (tail) parts.push({ t: 'text', v: tail });
+  if (!parts.length) parts.push({ t: 'text', v: text });
+  return parts;
+}
+
+function parseOuiBlock(src) {
+  const out = { title: '', note: '', rows: [], list: [], tags: [], callouts: [], followups: [], unknown: [] };
+  for (const raw of String(src).split('\n')) {
+    const line = raw.trim();
+    if (!line || line.startsWith('```')) continue;
+    const m = line.match(/^([A-Za-z_\u0600-\u06FF]+)\s*:\s*(.*)$/);
+    if (!m) { out.unknown.push(line); continue; }
+    const k = m[1].toLowerCase();
+    const v = m[2].trim();
+    if (k === 'card' && !out.title) out.title = v;
+    else if (k === 'note' && !out.note) out.note = v;
+    else if (k === 'row') {
+      const i = v.indexOf('|');
+      if (i > 0) out.rows.push([v.slice(0, i).trim(), v.slice(i + 1).trim()]);
+      else out.unknown.push(v);
+    } else if (k === 'list') out.list.push(v);
+    else if (k === 'tags') String(v).split(/[،,]/).map((s) => s.trim()).filter(Boolean).forEach((t) => out.tags.push(t));
+    else if (k === 'callout') out.callouts.push(v);
+    else if (k === 'followup') out.followups.push(v);
+    else out.unknown.push(line);
+  }
+  return out;
+}
+
+function renderOuiPanel(parsed) {
+  const wrap = el('div', 'msg bot');
+  const card = el('div', 'oui-card');
+  const head = el('div', 'oui-head');
+  head.appendChild(el('div', 'oui-title', parsed.title || 'پنل'));
+  if (parsed.note) head.appendChild(el('div', 'oui-note', parsed.note));
+  card.appendChild(head);
+
+  const body = el('div', 'oui-body');
+  if (parsed.rows.length) {
+    const rows = el('div', 'oui-rows');
+    for (const [k, v] of parsed.rows) {
+      const r = el('div', 'oui-row');
+      r.appendChild(el('span', 'oui-k', k));
+      r.appendChild(el('span', 'oui-v', v));
+      rows.appendChild(r);
+    }
+    body.appendChild(rows);
+  }
+  if (parsed.list.length) {
+    const ul = el('ul', 'oui-list');
+    for (const item of parsed.list) ul.appendChild(el('li', null, item));
+    body.appendChild(ul);
+  }
+  if (parsed.tags.length) {
+    const tg = el('div', 'oui-tags');
+    for (const t of parsed.tags) tg.appendChild(el('span', 'oui-chip', t));
+    body.appendChild(tg);
+  }
+  for (const c of parsed.callouts) body.appendChild(el('div', 'oui-callout', c));
+  for (const u of parsed.unknown) body.appendChild(el('div', 'oui-plain', u));
+  if (!parsed.rows.length && !parsed.list.length && !parsed.tags.length && !parsed.callouts.length && !parsed.unknown.length) {
+    body.appendChild(el('div', 'oui-plain', '—'));
+  }
+  card.appendChild(body);
+
+  if (parsed.followups.length) {
+    const fus = el('div', 'oui-followups');
+    for (const f of parsed.followups.slice(0, 4)) {
+      const b = el('button', 'oui-fu', f);
+      b.type = 'button';
+      b.addEventListener('click', () => { input.value = f; sendMsg(); });
+      fus.appendChild(b);
+    }
+    card.appendChild(fus);
+  }
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function renderRichReply(text) {
+  for (const part of splitOuiBlocks(text || '')) {
+    if (part.t === 'text') { addMsg(part.v, 'bot'); continue; }
+    const parsed = parseOuiBlock(part.v);
+    chat.appendChild(renderOuiPanel(parsed));
+    chat.scrollTop = chat.scrollHeight;
+  }
 }
 
 form.addEventListener('submit', (e) => { e.preventDefault(); sendMsg(); });
