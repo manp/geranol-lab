@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>گرانول — گفتگوی شناخت پروژه</title>
+<meta name="description" content="گفتگوی شناخت نیازمندی‌های پروژهٔ وب و پنل مدیریت آزمایشگاه گرانول">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<main class="shell">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">🧪</span>
+      <div>
+        <h1>آزمایشگاه گرانول</h1>
+        <p>گفتگوی شناخت پروژهٔ وب و پنل مدیریت</p>
+      </div>
+    </div>
+    <span class="pill" id="phase-pill">شروع گفتگو</span>
+  </header>
+
+  <section class="chat" id="chat" aria-live="polite">
+    <div class="msg bot">
+      <div class="bubble">سلام 👋<br>من دستیار پروژهٔ وب آزمایشگاه گرانول هستم. چند سؤال کوتاه دربارهٔ آزمایشگاهتان می‌پرسم تا سایت و پنل، دقیقاً برای کار شما ساخته شود.<br>هر وقت راحت بودید، شروع کنید — مثلاً بنویسید «سلام» یا مستقیم اسم و شهر آزمایشگاه را بگویید.</div>
+    </div>
+  </section>
+
+  <section class="composer">
+    <form id="form" autocomplete="off">
+      <textarea id="input" rows="1" placeholder="پیام شما…" maxlength="2000"></textarea>
+      <button type="submit" id="send" aria-label="ارسال">➤</button>
+    </form>
+    <p class="hint">پاسخ‌ها روی همین دستگاه نگه داشته می‌شود؛ در فرصت‌های مختلف می‌توانید ادامه بدهید.</p>
+  </section>
+
+  <section class="notes" id="notes" hidden>
+    <h2>نکتهٔ مهمی هست که نگفته‌اید؟</h2>
+    <textarea id="note" rows="3" placeholder="هر نکتهٔ آزاد — قالب گزارش، نرم‌افزار فعلی، ملاحظات مالی و…"></textarea>
+    <button id="note-save" class="btn">ثبت یادداشت</button>
+    <span class="ok" id="note-ok" hidden>ثبت شد ✓</span>
+  </section>
+
+  <footer class="foot">پروژهٔ وب و پنل مدیریت آزمایشگاه گرانول</footer>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>

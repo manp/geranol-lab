@@ -1,0 +1,43 @@
+# geranol-chat — چت‌هاب کشف نیازمندی مشتری (پروژهٔ گرانول)
+
+اپ کوچک گفتگویی برای شناخت نیازمندی‌های مشتری آزمایشگاه گرانول، به‌جای فرم سرد.
+**کاملاً مستقل از تیم DS Bot است** — حافظهٔ جدا، پرامپت جدا، دیتای جدا.
+
+## معماری
+- `server.js` — بک‌اند Node بدون وابستگی: سرو استاتیک + `POST /api/message` (گردش گفتگو با مدل) + `POST /api/feedback` (یادداشت آزاد مشتری) + `/health`.
+- `public/` — فرانت فارسی RTL موبایل‌محور (بدون build).
+- `prompt.md` — پرامپت سیستم: **فقط** اسکریپت کشف (۶ فاز، هم‌راستا با پرسشنامهٔ ۱۹سؤالی). هیچ متنیم تیمی داخلش نیست — سخت‌ترین الزام ایزولاسیون.
+- `data/` — گفتگوها (SQLite/JSONL در runtime، خارج از گیت).
+
+## ایزولاسیون (الزام اصلی کارفرما)
+- هر بازدیدکننده session کوکی مستقل (`gchat`, HttpOnly) → گفتگوی هر مشتری جدا از بقیه.
+- به مدل فقط: پرامپت سیستم + نوبت‌های همان گفتگو. هیچ چیز دیگر هرگز به upstream نمی‌رود.
+- کلید مدل فقط سمت سرور (env `MODEL_KEY`)؛ بدون لاگ.
+- هیچ مسیری از این اپ به دیتای تیم/بات‌ها وجود ندارد.
+
+## مدل (قاعدهٔ zero-cost)
+- پیش‌فرض: Hive `zai-org/glm-5.3-flash` — فال‌بک طبق رجیستری: OR `z-ai/glm-5.3-flash` → Kilo `nvidia/nemotron-3-ultra-550b-a55b:free` (بی‌کلید).
+- تعویض با env: `MODEL_BASE` / `MODEL_ID` / `MODEL_KEY`.
+
+## اجرا روی Alpha (دستور مرجع)
+```bash
+# دیپلوی: /opt/geranol-chat + کانتینر node:22-alpine روی 127.0.0.1:8791
+# ترافیک: Traefik (dokploy) — /etc/dokploy/traefik/dynamic/geranol-chat-nsar-ir.yml
+# دامنه: geranol-chat.nsar.ir (wildcard DNS موجود؛ TLS با letsencrypt resolver)
+```
+
+## مسیر تیم (خواندن پاسخ‌ها)
+- خروجی خام: `data/dialogues/*.json` + `data/conversations.jsonl` + `data/client-notes.jsonl`.
+- اسکریپت `export.py` (در همین پوشه): می‌سازد `client-conversations.md` (ورودی منشور/بک‌لاگ) — بعد از هر تغییر قالب export، نسخهٔ تازه در `/workspace/granule-lab/` هم گذاشته می‌شود (دستور Chief).
+
+## نکتهٔ امنیتی
+- هیچ پیامی از طرف تیم به مشتری نمی‌رود؛ لینک را **کاربر** خودش به مشتری می‌دهد.
+- پنل ادمین (خروجی/بازبینی) با basicAuth در Traefik محافظت می‌شود.
+
+## بهره‌برداری (پس از دیپلوی 2026-10-28)
+- آدرس مشتری: **https://geranol-chat.nsar.ir** — لینک را کاربر خودش به مشتری می‌دهد.
+- پنل بازبینی: `https://geranol-chat.nsar.ir/admin/` (basicAuth؛ رمز روی Alpha: `/opt/geranol-chat/.admin-pass`) — فهرست گفتگوها + خروجی `export.md` / `export.json`.
+- خروجی مارک‌داون پس از هر تغییر قالب در `/workspace/granule-lab/client-conversations.md` هم گذاشته می‌شود (دستور Chief).
+- کانتینر: `granule-chat` (node:22-alpine، network host، mount `/opt/geranol-chat`)؛ ترافیک: Traefik `geranol-chat-nsar-ir.yml` (TLS letsencrypt + basicAuth فقط مسیر /admin).
+- زنجیرهٔ مدل (بدون کلید روی سرور): Kilo north-mini → Kilo nemotron-3-ultra → OR glm (اگر کلید env باشد). هر لایه بی‌کلید همیشه فعال.
+- دیتای گفتگو: `/opt/geranol-chat/data/` (dialogues/*.json + conversations.jsonl + client-notes.jsonl) — بکاپ قبل از هر تغییر.
