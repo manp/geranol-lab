@@ -120,7 +120,7 @@ function splitOuiBlocks(text) {
 }
 
 function parseOuiBlock(src) {
-  const out = { title: '', note: '', rows: [], list: [], tags: [], callouts: [], followups: [], unknown: [] };
+  const out = { title: '', note: '', rows: [], list: [], steps: [], tags: [], callouts: [], followups: [], unknown: [] };
   for (const raw of String(src).split('\n')) {
     const line = raw.trim();
     if (!line || line.startsWith('```')) continue;
@@ -135,6 +135,7 @@ function parseOuiBlock(src) {
       if (i > 0) out.rows.push([v.slice(0, i).trim(), v.slice(i + 1).trim()]);
       else out.unknown.push(v);
     } else if (k === 'list') out.list.push(v);
+    else if (k === 'step') out.steps.push(v);
     else if (k === 'tags') String(v).split(/[،,]/).map((s) => s.trim()).filter(Boolean).forEach((t) => out.tags.push(t));
     else if (k === 'callout') out.callouts.push(v);
     else if (k === 'followup') out.followups.push(v);
@@ -167,6 +168,16 @@ function renderOuiPanel(parsed) {
     for (const item of parsed.list) ul.appendChild(el('li', null, item));
     body.appendChild(ul);
   }
+  if (parsed.steps.length) {
+    const st = el('div', 'oui-steps');
+    parsed.steps.forEach((s, i) => {
+      const row = el('div', 'oui-step');
+      row.appendChild(el('span', 'oui-step-n', String(i + 1)));
+      row.appendChild(el('span', 'oui-step-t', s));
+      st.appendChild(row);
+    });
+    body.appendChild(st);
+  }
   if (parsed.tags.length) {
     const tg = el('div', 'oui-tags');
     for (const t of parsed.tags) tg.appendChild(el('span', 'oui-chip', t));
@@ -174,7 +185,7 @@ function renderOuiPanel(parsed) {
   }
   for (const c of parsed.callouts) body.appendChild(el('div', 'oui-callout', c));
   for (const u of parsed.unknown) body.appendChild(el('div', 'oui-plain', u));
-  if (!parsed.rows.length && !parsed.list.length && !parsed.tags.length && !parsed.callouts.length && !parsed.unknown.length) {
+  if (!parsed.rows.length && !parsed.list.length && !parsed.steps.length && !parsed.tags.length && !parsed.callouts.length && !parsed.unknown.length) {
     body.appendChild(el('div', 'oui-plain', '—'));
   }
   card.appendChild(body);

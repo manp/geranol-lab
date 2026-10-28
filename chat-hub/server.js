@@ -115,8 +115,11 @@ async function callModel(turns) {
       });
       if (!r.ok) throw new Error('upstream ' + r.status);
       const d = await r.json();
-      const text = d && d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content;
+      const ch = d && d.choices && d.choices[0];
+      const text = ch && ch.message && ch.message.content;
       if (!text) throw new Error('empty completion');
+      // پاسخ بریده‌شده (finish_reason=length) = پنل ناقص/جملهٔ نصفه — لایهٔ بعدی را امتحان کن
+      if (ch.finish_reason === 'length') throw new Error('truncated (finish_reason=length)');
       return { text, layer: layer.id };
     } catch (e) {
       lastErr = e;
