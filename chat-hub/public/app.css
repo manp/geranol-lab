@@ -74,7 +74,7 @@ body {
 .ok { color: var(--accent); font-size: 13px; margin-inline-start: 8px; }
 .foot { text-align: center; font-size: 11px; color: var(--ink-2); padding: 12px 0 4px; }
 
-/* ---------- گیت پسورد ---------- */
+/* ---------- گیت پسورد (صفحهٔ عمومی است — assetها همیشه 200) ---------- */
 .gate { min-height: 60dvh; display: grid; place-items: center; }
 .gate .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);

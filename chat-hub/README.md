@@ -4,10 +4,10 @@
 **کاملاً مستقل از تیم DS Bot است** — حافظهٔ جدا، پرامپت جدا، دیتای جدا.
 
 ## معماری
-- `server.js` — بک‌اند Node بدون وابستگی: سرو استاتیک + `POST /api/message` (گردش گفتگو با مدل) + `POST /api/feedback` (یادداشت آزاد مشتری) + `/health`.
+- `server.js` — بک‌اند Node بدون وابستگی: سرو استاتیک (همیشه عمومی — صفحهٔ گیت استایل‌دار رندر می‌شود) + `GET /api/session` (وضعیت گیت) + `POST /api/unlock` (گیت) + `POST /api/message` (پشت گیت) + `POST /api/feedback` (پشت گیت) + `/health`.
 - `public/` — فرانت فارسی RTL موبایل‌محور (بدون build).
 - `prompt.md` — پرامپت سیستم: **فقط** اسکریپت کشف (۶ فاز، هم‌راستا با پرسشنامهٔ ۱۹سؤالی). هیچ متنیم تیمی داخلش نیست — سخت‌ترین الزام ایزولاسیون.
-- `data/` — گفتگوها (SQLite/JSONL در runtime، خارج از گیت).
+- `data/` — گفتگوها (JSONL در runtime).
 
 ## ایزولاسیون (الزام اصلی کارفرما)
 - هر بازدیدکننده session کوکی مستقل (`gchat`, HttpOnly) → گفتگوی هر مشتری جدا از بقیه.
@@ -31,11 +31,12 @@
 - اسکریپت `export.py` (در همین پوشه): می‌سازد `client-conversations.md` (ورودی منشور/بک‌لاگ) — بعد از هر تغییر قالب export، نسخهٔ تازه در `/workspace/granule-lab/` هم گذاشته می‌شود (دستور Chief).
 
 ## نکتهٔ امنیتی
-- هیچ پیامی از طرف تیم به مشتری نمی‌رود؛ لینک را **کاربر** خودش به مشتری می‌دهد.
+- هیچ پیامی از طرف تیم به مشتری نمی‌رود؛ لینک+رمز را **کاربر** خودش به مشتری می‌دهد.
+- گیت کلاینت: استاتیک عمومی، APIهای گفتگو پشت گیت (فرمان کاربر: «حتماً رمز داشته باشد»).
 - پنل ادمین (خروجی/بازبینی) با basicAuth در Traefik محافظت می‌شود.
 
-## بهره‌برداری (پس از دیپلوی 2026-10-28)
-- آدرس مشتری: **https://geranol-chat.nsar.ir** — صفحه با **رمز دسترسی محافظت می‌شود** (گیت کلاینت؛ هش در /opt/geranol-chat/.chat-pass-hash، مقدار خام در /opt/geranol-chat/.chat-pass) — لینک+رمز را کاربر خودش به مشتری می‌دهد.
+## بهره‌برداری (پس از دیپلوی 2026-10-28؛ اصلاح گیت همان روز بعدازظهر)
+- آدرس مشتری: **https://geranol-chat.nsar.ir** — صفحه با **رمز دسترسی محافظت می‌شود** (فرمان کاربر: «حتماً رمز داشته باشد»). **معماری گیت (اصلاح‌شده):** استاتیک صفحه — از جمله خود صفحهٔ گیت — همیشه بدون رمز ۲۰۰ است (ریشهٔ باگ CSS قبلی: ۴۰۱ شدن assetها برای بازدیدکنندهٔ تازه)؛ فقط `/api/message` و `/api/feedback` تا unlock قفل‌اند. Probe وضعیت: `GET /api/session` → `{gate, unlocked}`. هش در `/opt/geranol-chat/.chat-pass-hash`، مقدار خام در `/opt/geranol-chat/.chat-pass` — لینک+رمز را کاربر خودش به مشتری می‌دهد.
 - پنل بازبینی: `https://geranol-chat.nsar.ir/admin/` (basicAuth؛ رمز روی Alpha: `/opt/geranol-chat/.admin-pass`) — فهرست گفتگوها + خروجی `export.md` / `export.json`.
 - خروجی مارک‌داون پس از هر تغییر قالب در `/workspace/granule-lab/client-conversations.md` هم گذاشته می‌شود (دستور Chief).
 - کانتینر: `granule-chat` (node:22-alpine، network host، mount `/opt/geranol-chat`)؛ ترافیک: Traefik `geranol-chat-nsar-ir.yml` (TLS letsencrypt + basicAuth فقط مسیر /admin).
