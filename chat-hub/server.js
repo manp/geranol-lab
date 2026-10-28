@@ -134,6 +134,7 @@ const STATIC = {
   '/': ['index.html', 'text/html; charset=utf-8'],
   '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
   '/app.css': ['app.css', 'text/css; charset=utf-8'],
+  '/fonts.css': ['fonts.css', 'text/css; charset=utf-8'],
 };
 
 const server = http.createServer(async (req, res) => {
@@ -247,7 +248,8 @@ const server = http.createServer(async (req, res) => {
         } catch { return null; }
       }).filter(Boolean);
       const html = '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="utf-8">' +
-        '<title>بازبینی گفتگوها — گرانول</title></head><body style="font-family:sans-serif;direction:rtl">' +
+        '<link rel="stylesheet" href="/fonts.css">' +
+        '<title>بازبینی گفتگوها — گرانول</title></head><body style="font-family:Vazirmatn,sans-serif;direction:rtl">' +
         '<h1>گفتگوهای مشتری — گرانول (' + rows.length + ')</h1>' +
         '<p><a href="/admin/export.md">دانلود خروجی مارک‌داون</a> · <a href="/admin/export.json">JSON خام</a></p>' +
         '<table border="1" cellpadding="6" style="border-collapse:collapse">' +
