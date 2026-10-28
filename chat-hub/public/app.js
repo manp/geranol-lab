@@ -1,5 +1,10 @@
 'use strict';
 /* geranol-chat فرانت — بدون وابستگی */
+const gate = document.getElementById('gate');
+const gateForm = document.getElementById('gate-form');
+const gatePass = document.getElementById('gate-pass');
+const gateErr = document.getElementById('gate-err');
+const chatShell = document.getElementById('chat-shell');
 const chat = document.getElementById('chat');
 const form = document.getElementById('form');
 const input = document.getElementById('input');
@@ -111,4 +116,49 @@ noteSave.addEventListener('click', async () => {
     else noteOk.hidden = false, noteOk.textContent = 'خطا در ثبت';
   } catch { noteOk.hidden = false; noteOk.textContent = 'خطا در ثبت'; }
   noteSave.disabled = false;
+});
+
+// ---------- گیت پسورد ----------
+function showGate() {
+  gate.hidden = false;
+  document.querySelectorAll('.topbar, .chat, .composer, .foot').forEach((el) => { if (el.id !== 'chat-shell') el.hidden = true; });
+  chatShell.hidden = false;
+  chatShell.style.visibility = 'hidden';
+  gatePass.focus();
+}
+function showChat() {
+  gate.hidden = true;
+  chatShell.style.visibility = '';
+}
+
+(async function initGate() {
+  try {
+    // اگر کوچک unlock هست، API آزاد است؛ یک preflight ارزان می‌زنیم
+    const probe = await fetch('/app.css', { method: 'GET' });
+    if (probe.status === 401) { showGate(); return; }
+    showChat();
+  } catch { showChat(); }
+})();
+
+gateForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  gateErr.hidden = true;
+  const pass = gatePass.value;
+  if (!pass) return;
+  try {
+    const r = await fetch('/api/unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass }),
+    });
+    if (r.ok) {
+      showChat();
+    } else {
+      gateErr.hidden = false;
+      gatePass.value = '';
+      gatePass.focus();
+    }
+  } catch {
+    gateErr.hidden = false;
+  }
 });

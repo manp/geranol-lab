@@ -9,7 +9,19 @@
 </head>
 <body>
 <main class="shell">
-  <header class="topbar">
+  <section class="gate" id="gate" hidden>
+    <div class="card">
+      <h1>🔒 گفتگوی محافظت‌شده</h1>
+      <p>برای ورود به گفتگوی شناخت پروژه، رمزی که به شما داده شده را وارد کنید.</p>
+      <form id="gate-form">
+        <input type="password" id="gate-pass" placeholder="رمز دسترسی" autocomplete="current-password" required>
+        <button type="submit" class="btn">ورود</button>
+      </form>
+      <p class="gate-err" id="gate-err" hidden>رمز درست نیست؛ دوباره تلاش کنید.</p>
+    </div>
+  </section>
+
+  <header class="topbar" id="chat-shell" hidden>
     <div class="brand">
       <span class="brand-mark" aria-hidden="true">🧪</span>
       <div>
