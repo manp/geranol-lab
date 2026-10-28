@@ -6,7 +6,10 @@
  * ایزولاسیون:
  *  - هر بازدیدکننده session خودش را دارد (کوکی HttpOnly) — گفتگوها به هم نمی‌ریزند.
  *  - پرامپت سیستم فقط از prompt.md خوانده می‌شود؛ هیچ دادهٔ دیگری به مدل نمی‌رود.
- *  - کلیدها فقط سمت سرور از refs خوانده می‌شوند و هرگز لاگ/برگشت نمی‌شوند.
+ *  - کلیدها فقط سمت سرور از env خوانده می‌شوند و هرگز لاگ/برگشت نمی‌شوند.
+ *
+ * دسترسی: صفحهٔ چت برای هر دارندهٔ لینک باز است (فرمان کاربر 2026-10-28: «اصلا پسوردی نمیخواد»)؛
+ * کنترل سوءاستفاده فقط rate-limit 20 پیام/ساعت per session. /admin پشت basicAuth ترافیک.
  */
 
 const http = require('node:http');
@@ -21,8 +24,8 @@ const MAX_TURNS = 40;            // سقف نوبت هر گفتگو
 const RATE_LIMIT = 20;           // پیام در ساعت per session
 const UPSTREAM_TIMEOUT = 30000;
 
-// زنجیرهٔ مدل طبق رجیستری (zero-cost): Hive → OR → Kilo؛ هر لایه فقط اگر کلیدش باشد،
-// Kilo بی‌کلید همیشه هست. کلیدها فقط سمت سرور، از env، هرگز لاگ نمی‌شوند.
+// زنجیرهٔ مدل: Hive → Kilo بی‌کلید → OR (اگر کلید env باشد).
+// کلیدها فقط سمت سرور، از env، هرگز لاگ نمی‌شوند.
 const CHAIN = [
   { base: 'https://api-cdn.thehive.ai/api/v3', id: 'zai-org/glm-5.3-flash', key: (process.env.HIVE_API_KEY || '').trim() },
   { base: 'https://api-cdn.thehive.ai/api/v3', id: 'deepseek-ai/deepseek-v4.1-flash-1017', key: (process.env.HIVE_API_KEY || '').trim() },
@@ -40,6 +43,9 @@ const PROMPT = fs.readFileSync(path.join(ROOT, 'prompt.md'), 'utf8');
 // ---------- گیت پسورد کلاینت ----------
 // پسورد هش‌شده (sha256 hex) از env یا فایل .chat-pass-hash کنار اپ؛
 // اپ خودش هرگز مقدار خام را نمی‌بیند.
+// معماری (اصلاح 2026-10-28 بعدازظهر): استاتیک صفحهٔ چت — از جمله خود صفحهٔ گیت —
+// همیشه بدون رمز 200 است (ریشهٔ باگ CSS قبلی: 401 شدن assetها برای بازدیدکنندهٔ تازه)؛
+// فقط APIهای گفتگو (message/feedback) تا unlock قفل‌اند.
 let CHAT_PASS_HASH = (process.env.CHAT_PASS_HASH || '').trim();
 if (!CHAT_PASS_HASH) {
   const hp = path.join(ROOT, '.chat-pass-hash');
@@ -132,7 +138,23 @@ const server = http.createServer(async (req, res) => {
   const pathName = url.pathname;
 
   try {
-    // --- گیت پسورد کلاینت: ورود + بررسی
+    // --- health
+    if (pathName === '/health') return json(res, 200, { ok: true, model: MODEL_ID });
+
+    // --- static: همیشه عمومی — صفحهٔ گیت استایل‌دار برای بازدیدکنندهٔ تازه باید کامل رندر شود
+    if (STATIC[pathName] && req.method === 'GET') {
+      const [file, type] = STATIC[pathName];
+      const c = fs.readFileSync(path.join(ROOT, 'public', file));
+      res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
+      return res.end(c);
+    }
+
+    // --- وضعیت گیت برای فرانت (عمومی؛ فقط true/false)
+    if (pathName === '/api/session' && req.method === 'GET') {
+      return json(res, 200, { unlocked: chatUnlocked(req), gate: !!CHAT_PASS_HASH });
+    }
+
+    // --- unlock گیت (عمومی؛ نقطهٔ ورود)
     if (pathName === '/api/unlock' && req.method === 'POST') {
       if (!CHAT_PASS_HASH) return json(res, 200, { ok: true, gate: false });
       const body = await readBody(req);
@@ -146,20 +168,10 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { ok: true, gate: true });
     }
 
-    // --- مسیرهای محافظت‌شده: چت بدون رمز باز نمی‌شود
-    if (['/api/message', '/api/feedback', '/app.js', '/app.css'].includes(pathName) && !chatUnlocked(req)) {
+    // --- APIهای گفتگو: پشت گیت — استاتیک و session/unlock هرگز از این خط رد نمی‌شوند
+    if (['/api/message', '/api/feedback'].includes(pathName) && !chatUnlocked(req)) {
+      logLine('auth-failures.jsonl', { ts: new Date().toISOString(), path: pathName, ip: req.socket.remoteAddress });
       return json(res, 401, { gate: true, error: 'این گفتگو با رمز محافظت می‌شود.' });
-    }
-
-    // --- health
-    if (pathName === '/health') return json(res, 200, { ok: true, model: MODEL_ID });
-
-    // --- static
-    if (STATIC[pathName] && req.method === 'GET') {
-      const [file, type] = STATIC[pathName];
-      const c = fs.readFileSync(path.join(ROOT, 'public', file));
-      res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
-      return res.end(c);
     }
 
     // --- شروع/ادامهٔ گفتگو

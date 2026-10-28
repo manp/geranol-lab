@@ -1,5 +1,5 @@
 'use strict';
-/* geranol-chat فرانت — بدون وابستگی */
+/* geranol-chat فرانت — بدون وابستگی؛ گیت پسورد فقط روی APIهای گفتگو (استاتیک همیشه باز) */
 const gate = document.getElementById('gate');
 const gateForm = document.getElementById('gate-form');
 const gatePass = document.getElementById('gate-pass');
@@ -119,25 +119,29 @@ noteSave.addEventListener('click', async () => {
 });
 
 // ---------- گیت پسورد ----------
+// صفحهٔ گیت خودش بخشی از صفحهٔ عمومی است (استایل‌دار)؛ فقط APIهای گفتگو قفل‌اند.
 function showGate() {
   gate.hidden = false;
-  document.querySelectorAll('.topbar, .chat, .composer, .foot').forEach((el) => { if (el.id !== 'chat-shell') el.hidden = true; });
   chatShell.hidden = false;
   chatShell.style.visibility = 'hidden';
+  chat.style.display = 'none';
+  document.querySelector('.composer').hidden = true;
   gatePass.focus();
 }
 function showChat() {
   gate.hidden = true;
   chatShell.style.visibility = '';
+  chat.style.display = '';
+  document.querySelector('.composer').hidden = false;
 }
 
 (async function initGate() {
   try {
-    // اگر کوچک unlock هست، API آزاد است؛ یک preflight ارزان می‌زنیم
-    const probe = await fetch('/app.css', { method: 'GET' });
-    if (probe.status === 401) { showGate(); return; }
-    showChat();
-  } catch { showChat(); }
+    const r = await fetch('/api/session', { method: 'GET' });
+    const d = await r.json();
+    if (d.gate && !d.unlocked) showGate();
+    else showChat();
+  } catch { showGate(); } // اگر probe ناموفق بود، محافظه‌کارانه گیت نشان بده
 })();
 
 gateForm.addEventListener('submit', async (e) => {
@@ -162,3 +166,4 @@ gateForm.addEventListener('submit', async (e) => {
     gateErr.hidden = false;
   }
 });
+
